@@ -1,3 +1,15 @@
+	* fix issue with retrying trackers in tiers > 0
+	* fix last_upload and last_download resume data fields to use posix time
+	* improve error messages for no_connect_privileged_ports, by untangle it from the port filter
+	* fix I2P issue introduced in 2.0.0
+	* add async tracker status query, post_trackers()
+	* add async torrent status query, post_status()
+	* support loading version 2 of resume data format
+	* fix issue with odd piece sizes
+	* add async piece availability query, post_piece_availability()
+	* add async download queue query, post_download_queue()
+	* add async file_progress query, post_file_progress()
+	* add async peer_info query, post_peer_info()
 
 2.0.8 released
 

@@ -193,7 +193,7 @@ private:
 
 		// send hello command
 		m_state = read_hello_response;
-		static const char cmd[] = "HELLO VERSION MIN=3.0 MAX=3.0\n";
+		static const char cmd[] = "HELLO VERSION MIN=3.1 MAX=3.1\n";
 
 		ADD_OUTSTANDING_ASYNC("i2p_stream::start_read_line");
 		async_write(m_sock, boost::asio::buffer(cmd, sizeof(cmd) - 1), wrap_allocator(
@@ -232,11 +232,6 @@ private:
 			ADD_OUTSTANDING_ASYNC("i2p_stream::read_line");
 			// read another byte from the socket
 			m_buffer.resize(read_pos + 1);
-			async_read(m_sock, boost::asio::buffer(&m_buffer[read_pos], 1), wrap_allocator(
-			[this](error_code const& ec, std::size_t, Handler hn) {
-				start_read_line(ec, std::move(hn));
-			}, std::move(h)));
-
 			async_read(m_sock, boost::asio::buffer(&m_buffer[read_pos], 1), wrap_allocator(
 			[this](error_code const& ec, std::size_t, Handler hn) {
 				read_line(ec, std::move(hn));
@@ -282,7 +277,8 @@ private:
 				break;
 		}
 
-		string_view remaining(m_buffer.data(), m_buffer.size());
+		TORRENT_ASSERT(m_buffer[int(m_buffer.size()) - 1] == '\0');
+		string_view remaining(m_buffer.data(), m_buffer.size() - 1);
 		string_view token;
 
 		std::tie(token, remaining) = split_string(remaining, ' ');
@@ -408,7 +404,7 @@ private:
 		ADD_OUTSTANDING_ASYNC("i2p_stream::start_read_line");
 		async_write(m_sock, boost::asio::buffer(cmd, std::size_t(size)), wrap_allocator(
 			[this](error_code const& ec, std::size_t, Handler hn) {
-				read_line(ec, std::move(hn));
+				start_read_line(ec, std::move(hn));
 			}, std::move(h)));
 	}
 
@@ -432,8 +428,9 @@ private:
 		TORRENT_ASSERT(m_magic == 0x1337);
 		m_state = read_session_create_response;
 		char cmd[400];
-		int size = std::snprintf(cmd, sizeof(cmd), "SESSION CREATE STYLE=STREAM ID=%s DESTINATION=TRANSIENT\n"
-			, m_id);
+		int size = std::snprintf(cmd, sizeof(cmd),
+			"SESSION CREATE STYLE=STREAM ID=%s DESTINATION=TRANSIENT SIGNATURE_TYPE=7 "
+			"inbound.quantity=3 outbound.quantity=3 inbound.length=3 outbound.length=3\n", m_id);
 		ADD_OUTSTANDING_ASYNC("i2p_stream::start_read_line");
 		async_write(m_sock, boost::asio::buffer(cmd, std::size_t(size)), wrap_allocator(
 			[this](error_code const& ec, std::size_t, Handler hn) {

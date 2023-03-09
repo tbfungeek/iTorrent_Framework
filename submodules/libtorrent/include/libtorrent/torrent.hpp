@@ -534,6 +534,7 @@ namespace libtorrent {
 		void received_synack(bool ipv6);
 
 		void set_ip_filter(std::shared_ptr<const ip_filter> ipf);
+		void privileged_port_updated();
 		void port_filter_updated();
 		ip_filter const* get_ip_filter() { return m_ip_filter.get(); }
 
@@ -600,6 +601,7 @@ namespace libtorrent {
 #endif
 #endif // TORRENT_ABI_VERSION
 
+		void post_piece_availability();
 		void piece_availability(aux::vector<int, piece_index_t>& avail) const;
 
 		void set_piece_priority(piece_index_t index, download_priority_t priority);
@@ -626,6 +628,7 @@ namespace libtorrent {
 		void update_piece_priorities(
 			aux::vector<download_priority_t, file_index_t> const& file_prios);
 
+		void post_status(status_flags_t flags);
 		void status(torrent_status* st, status_flags_t flags);
 
 		// this torrent changed state, if the user is subscribing to
@@ -633,6 +636,7 @@ namespace libtorrent {
 		void state_updated();
 
 		void file_progress(aux::vector<std::int64_t, file_index_t>& fp, file_progress_flags_t flags);
+		void post_file_progress(file_progress_flags_t flags);
 
 #if TORRENT_ABI_VERSION == 1
 		void use_interface(std::string net_interface);
@@ -747,8 +751,10 @@ namespace libtorrent {
 #if TORRENT_ABI_VERSION == 1
 		void get_full_peer_list(std::vector<peer_list_entry>* v) const;
 #endif
+		void post_peer_info();
 		void get_peer_info(std::vector<peer_info>* v);
 		void get_download_queue(std::vector<partial_piece_info>* queue) const;
+		void post_download_queue();
 
 		void update_auto_sequential();
 	private:
@@ -1089,6 +1095,7 @@ namespace libtorrent {
 
 		std::vector<std::vector<sha256_hash>> get_piece_layers() const;
 
+		void post_trackers();
 		std::vector<announce_entry> trackers() const;
 
 		// this sets all the "enabled" states on all trackers, giving them

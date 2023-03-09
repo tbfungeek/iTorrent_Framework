@@ -1191,10 +1191,8 @@ bool ssl_server_name_callback(ssl::stream_handle_type stream_handle, std::string
 	void session_impl::set_port_filter(port_filter const& f)
 	{
 		m_port_filter = f;
-		if (m_settings.get_bool(settings_pack::no_connect_privileged_ports))
-			m_port_filter.add_rule(0, 1024, port_filter::blocked);
 		// Close connections whose endpoint is filtered
-		// by the new ip-filter
+		// by the new port-filter
 		for (auto const& t : m_torrents)
 			t->port_filter_updated();
 	}
@@ -2354,17 +2352,6 @@ namespace {
 #endif
 
 #if TORRENT_USE_I2P
-
-	proxy_settings session_impl::i2p_proxy() const
-	{
-		proxy_settings ret;
-
-		ret.hostname = m_settings.get_str(settings_pack::i2p_hostname);
-		ret.type = settings_pack::i2p_proxy;
-		ret.port = std::uint16_t(m_settings.get_int(settings_pack::i2p_port));
-		return ret;
-	}
-
 	void session_impl::on_i2p_open(error_code const& ec)
 	{
 		if (ec)
@@ -4882,11 +4869,11 @@ namespace {
 
 		torrent_handle handle(torrent_ptr);
 
-        if (!torrent_ptr)
-        {
-            m_alerts.emplace_alert<add_torrent_alert>(handle, std::move(alert_params), ec);
-            return handle;
-        }
+		if (!torrent_ptr)
+		{
+			m_alerts.emplace_alert<add_torrent_alert>(handle, std::move(alert_params), ec);
+			return handle;
+		}
 
 		TORRENT_ASSERT(info_hash.has_v1() || info_hash.has_v2());
 
@@ -4900,7 +4887,7 @@ namespace {
 		if (!added)
 		{
 			abort_torrent.disarm();
-            m_alerts.emplace_alert<add_torrent_alert>(handle, std::move(alert_params), ec);
+			m_alerts.emplace_alert<add_torrent_alert>(handle, std::move(alert_params), ec);
 			return handle;
 		}
 
@@ -5236,9 +5223,6 @@ namespace {
 		std::shared_ptr<torrent> tptr = h.m_torrent.lock();
 		if (!tptr) return;
 
-		m_alerts.emplace_alert<torrent_removed_alert>(tptr->get_handle()
-			, tptr->info_hash(), tptr->get_userdata());
-
 		remove_torrent_impl(tptr, options);
 
 		tptr->abort();
@@ -5343,16 +5327,10 @@ namespace {
 	{
 		if (m_settings.get_bool(settings_pack::no_connect_privileged_ports))
 		{
-			m_port_filter.add_rule(0, 1024, port_filter::blocked);
-
 			// Close connections whose endpoint is filtered
-			// by the new ip-filter
+			// by the new setting
 			for (auto const& t : m_torrents)
-				t->port_filter_updated();
-		}
-		else
-		{
-			m_port_filter.add_rule(0, 1024, 0);
+				t->privileged_port_updated();
 		}
 	}
 
@@ -6210,6 +6188,7 @@ namespace {
 		// since we're destructing the session, no more alerts will make it out to
 		// the user. So stop posting them now
 		m_alerts.set_alert_mask({});
+		m_alerts.set_notify_function({});
 
 		// this is not allowed to be the network thread!
 //		TORRENT_ASSERT(is_not_thread());

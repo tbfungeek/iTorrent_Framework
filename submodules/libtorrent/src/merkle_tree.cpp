@@ -59,13 +59,12 @@ namespace aux {
 
 	void merkle_tree::load_verified_bits(std::vector<bool> const& verified)
 	{
-		TORRENT_ASSERT(int(verified.size()) <= m_num_blocks);
 		TORRENT_ASSERT(m_block_verified.size() == m_num_blocks);
 
 		// The verified bitfield may be invalid. If so, correct it to
 		// maintain the invariant of this class
 		int block_index = block_layer_start();
-		for (int i = 0; i < int(verified.size()); ++i)
+		for (int i = 0; i < std::min(int(verified.size()), m_num_blocks); ++i)
 		{
 			if (verified[std::size_t(i)] && has_node(block_index))
 				m_block_verified.set_bit(i);
@@ -486,7 +485,9 @@ namespace {
 	std::tuple<merkle_tree::set_block_result, int, int> merkle_tree::set_block(int const block_index
 		, sha256_hash const& h)
 	{
+#ifdef TORRENT_EXPENSIVE_INVARIANT_CHECKS
 		INVARIANT_CHECK;
+#endif
 		TORRENT_ASSERT(block_index < m_num_blocks);
 
 		auto const num_leafs = merkle_num_leafs(m_num_blocks);
@@ -861,8 +862,10 @@ namespace {
 
 	void merkle_tree::allocate_full()
 	{
-		INVARIANT_CHECK;
 		if (m_mode == mode_t::full_tree) return;
+
+		INVARIANT_CHECK;
+
 		// if we already have the complete tree, we shouldn't be allocating it
 		// again.
 		TORRENT_ASSERT(m_mode != mode_t::block_layer);
